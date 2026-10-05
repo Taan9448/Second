@@ -49,4 +49,4 @@
 
 사용자가 GitHub 업로드와 Pages 실행 문제 수정을 요청했다. 기존 Pages는 빌드 전 index.html의 /src/main.tsx를 배포하여 실행할 수 없었다. Vite base를 상대 경로로 설정하고 main push 시 시험→빌드→dist 배포하는 .github/workflows/pages.yml을 추가했다. tests/pages.mjs는 /Second/에서만 파일을 제공하는 정적 서버와 Chromium으로 화면·저장·아트·글꼴 경로를 확인한다. npm run build 후 npm run test:pages로 실행한다. 원격 배포 결과는 Actions에서 별도 확인한다.
 
-Pages 검수: 로컬 정적 /Second/ 브라우저 검수 및 18개 시험/빌드 통과. 원격 최초 Actions 배포는 성공했으나 기존 branch/Jekyll 배포가 뒤이어 소스 버전을 배포했다. 사용자가 Settings → Pages → Source를 GitHub Actions로 변경해야 중복 배포가 멈춘다. 연결 도구는 Pages 관리 설정을 변경할 수 없다. 재실행 시 중복 artifact 오류를 피하도록 artifact 이름에 run_attempt를 넣는다. 이 환경에서는 github.io 직접 접속이 네트워크 정책으로 차단되어 실사이트 화면은 검증하지 못했다.
+Pages 검수: 로컬 정적 /Second/ 브라우저 검수 및 18개 시험/빌드 통과. 원격 최초 Actions 배포는 성공했으나 기존 branch/Jekyll 배포가 뒤이어 소스 버전을 배포했다. 사용자가 Settings → Pages → Source를 GitHub Actions로 변경했다고 답변했다. 이후 push에는 branch/Jekyll 배포가 생성되지 않고 전용 빌드 배포만 실행됨을 확인했다. 연결 도구는 Pages 관리 설정을 변경할 수 없다. 재실행 시 중복 artifact 오류를 피하도록 artifact 이름에 run_attempt를 넣는다. 이 환경에서는 github.io 직접 접속이 네트워크 정책으로 차단되어 실사이트 화면은 검증하지 못했다.
