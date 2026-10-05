@@ -5,7 +5,14 @@ import { chromium, expect } from '@playwright/test';
 
 // A strict static host: no Vite transforms or SPA fallback can hide broken Pages paths.
 const root = resolve('dist');
-const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.svg': 'image/svg+xml', '.woff2': 'font/woff2' };
+const types = {
+  '.html': 'text/html',
+  '.js': 'text/javascript',
+  '.css': 'text/css',
+  '.png': 'image/png',
+  '.svg': 'image/svg+xml',
+  '.woff2': 'font/woff2',
+};
 const server = createServer(async (req, res) => {
   const pathname = decodeURIComponent(new URL(req.url, 'http://localhost').pathname);
   const file = resolve(root, pathname.slice('/Second/'.length) || 'index.html');
@@ -15,21 +22,27 @@ const server = createServer(async (req, res) => {
   }
   try {
     const body = await readFile(file);
-    res.writeHead(200, { 'Content-Type': types[extname(file)] || 'application/octet-stream' }).end(body);
+    res
+      .writeHead(200, { 'Content-Type': types[extname(file)] || 'application/octet-stream' })
+      .end(body);
   } catch {
     res.writeHead(404).end();
   }
 });
-await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
 let browser;
 try {
-  browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/chromium', headless: true, args: ['--no-sandbox'] });
+  browser = await chromium.launch({
+    executablePath: process.env.CHROMIUM_PATH || '/usr/bin/chromium',
+    headless: true,
+    args: ['--no-sandbox'],
+  });
   const page = await browser.newPage();
   const errors = [];
   const loaded = [];
-  page.on('pageerror', error => errors.push(error.message));
-  page.on('requestfailed', req => errors.push(req.url()));
-  page.on('response', response => {
+  page.on('pageerror', (error) => errors.push(error.message));
+  page.on('requestfailed', (req) => errors.push(req.url()));
+  page.on('response', (response) => {
     if (response.status() >= 400) errors.push(`${response.status()} ${response.url()}`);
     loaded.push(new URL(response.url()).pathname);
   });
@@ -44,14 +57,21 @@ try {
   await expect(page.locator('.save-indicator')).toHaveText('◈ 자동 저장');
   await page.evaluate(() => document.fonts.ready);
   await page.waitForLoadState('networkidle');
-  for (const asset of ['courtyard.png', 'characters.png', 'cards.png']) {
+  for (const asset of [
+    'courtyard.png',
+    'brush-animation.png',
+    'enemy-animation.png',
+    'ink-dragon-animation.png',
+  ]) {
     expect(loaded).toContain(`/Second/art/${asset}`);
   }
-  expect(loaded.some(path => path.startsWith('/Second/fonts/'))).toBe(true);
-  expect(loaded.every(path => path.startsWith('/Second/'))).toBe(true);
+  expect(loaded.some((path) => path.startsWith('/Second/fonts/'))).toBe(true);
+  expect(loaded.every((path) => path.startsWith('/Second/'))).toBe(true);
   expect(errors).toEqual([]);
-  console.log('Pages production check passed: /Second/ title, lobby, 3-party battle, save, artwork and fonts.');
+  console.log(
+    'Pages production check passed: /Second/ title, lobby, 3-party battle, save, artwork and fonts.',
+  );
 } finally {
   await browser?.close();
-  await new Promise(resolve => server.close(resolve));
+  await new Promise((resolve) => server.close(resolve));
 }

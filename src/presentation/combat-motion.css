@@ -1,0 +1,465 @@
+/* The battlefield has independently animated actors and transparent effect layers. */
+.fighter-body {
+  width: 115%;
+  max-width: 340px;
+  aspect-ratio: 1;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 1;
+  transform-origin: 50% 85%;
+  animation: fighter-idle 2.8s ease-in-out infinite;
+}
+.fighter-body .sprite {
+  width: 100%;
+  max-width: none;
+}
+.animated-hero,
+.animated-enemy {
+  width: 100%;
+  height: 100%;
+  background-repeat: no-repeat;
+  image-rendering: pixelated;
+  filter: drop-shadow(0 10px 5px #0007);
+}
+.animated-hero {
+  background-image: url('/art/brush-animation.png');
+  background-size: 400% 200%;
+  animation: hero-idle-frames 3.2s steps(1) infinite;
+}
+.animated-hero.pose-windup {
+  animation: none;
+  background-position: 0% 100%;
+}
+.animated-hero.pose-release {
+  animation: hero-release-frames 0.32s steps(1) forwards;
+  background-position: 33.333% 100%;
+}
+.animated-hero.pose-follow {
+  animation: none;
+  background-position: 66.666% 100%;
+}
+.animated-hero.pose-recover {
+  animation: none;
+  background-position: 100% 100%;
+}
+.animated-hero.pose-hit {
+  animation: none;
+  background-position: 0 0;
+}
+.animated-enemy {
+  background-image: url('/art/enemy-animation.png');
+  background-size: 300% 200%;
+  background-position-y: 0%;
+}
+.enemy-art-3 {
+  background-position-x: 0%;
+}
+.enemy-art-4 {
+  background-position-x: 50%;
+}
+.enemy-art-5 {
+  background-position-x: 100%;
+}
+.animated-enemy.pose-release,
+.animated-enemy.pose-follow {
+  background-position-y: 100%;
+}
+.unit.acting {
+  z-index: 5;
+}
+.unit[data-pose='windup'] .fighter-body {
+  animation: fighter-windup 0.22s ease-out both;
+}
+.unit[data-pose='release'].ally .fighter-body {
+  animation: fighter-strike 0.32s cubic-bezier(0.1, 0.8, 0.2, 1) both;
+}
+.unit[data-pose='release'].enemy .fighter-body {
+  animation: enemy-strike 0.32s cubic-bezier(0.1, 0.8, 0.2, 1) both;
+}
+.unit[data-pose='follow'].ally .fighter-body {
+  animation: none;
+  transform: translateX(48px) rotate(3deg);
+}
+.unit[data-pose='follow'].enemy .fighter-body {
+  animation: none;
+  transform: translateX(-44px) rotate(-4deg);
+}
+.unit[data-pose='recover'] .fighter-body {
+  animation: fighter-recover 0.24s ease-out both;
+}
+.unit[data-pose='hit'] .fighter-body {
+  animation: fighter-hit 0.16s steps(2) both;
+}
+.unit.down .fighter-body {
+  animation: none;
+  transform: translateY(14px) rotate(12deg);
+  filter: grayscale(1);
+}
+.unit.acting .sprite,
+.unit.hit .sprite {
+  animation: none;
+}
+.unit.down {
+  transition: opacity 0.35s;
+}
+.battle-effects {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 7;
+  pointer-events: none;
+}
+.impact-shake {
+  animation: stage-hit 0.16s steps(3) both;
+}
+.technique-banner {
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 8;
+  pointer-events: none;
+  border-bottom: 1px solid #c9bda366;
+  padding: 7px 26px;
+  background: linear-gradient(90deg, transparent, #0f1429df 20%, #0f1429df 80%, transparent);
+  color: #f0e8d8;
+  font-family: 'Noto Serif CJK KR', serif;
+  font-size: 16px;
+  letter-spacing: 0.12em;
+  white-space: nowrap;
+}
+.technique-banner > span {
+  font-size: 12px;
+  color: #bfa787;
+  margin-right: 12px;
+}
+.floating-number {
+  top: 36%;
+  font-family: 'Noto Sans KR', sans-serif;
+  font-weight: 900;
+  font-size: 34px;
+  animation: number-impact 0.6s ease-out both;
+  paint-order: stroke fill;
+  -webkit-text-stroke: 3px #251b1f;
+  color: #fff1df;
+}
+.floating-number.block {
+  color: #c3e4ef;
+}
+.floating-number.heal {
+  color: #b7efc5;
+}
+.ambient-motes {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 0;
+}
+.ambient-motes i {
+  position: absolute;
+  width: 3px;
+  height: 3px;
+  background: #efc69c;
+  opacity: 0;
+  left: calc(12% + var(--i) * 15%);
+  bottom: 20%;
+  animation: mote-drift calc(5s + var(--i) * 0.5s) linear infinite;
+  animation-delay: calc(var(--i) * -0.8s);
+}
+@keyframes hero-idle-frames {
+  0%,
+  100% {
+    background-position: 0% 0%;
+  }
+  30% {
+    background-position: 33.333% 0%;
+  }
+  55% {
+    background-position: 66.666% 0%;
+  }
+  88% {
+    background-position: 100% 0%;
+  }
+}
+@keyframes hero-release-frames {
+  0%,
+  45% {
+    background-position: 33.333% 100%;
+  }
+  46%,
+  100% {
+    background-position: 66.666% 100%;
+  }
+}
+@keyframes fighter-idle {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-0.5deg);
+  }
+  50% {
+    transform: translateY(-3px) rotate(0.5deg);
+  }
+}
+@keyframes fighter-windup {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-8px) rotate(-3deg);
+  }
+}
+@keyframes fighter-strike {
+  0% {
+    transform: translateX(-8px);
+  }
+  45%,
+  100% {
+    transform: translateX(48px) rotate(3deg);
+  }
+}
+@keyframes enemy-strike {
+  0% {
+    transform: translateX(8px);
+  }
+  45%,
+  100% {
+    transform: translateX(-44px) rotate(-4deg);
+  }
+}
+@keyframes fighter-recover {
+  from {
+    transform: translateY(-2px) scale(1.03);
+  }
+  to {
+    transform: translateY(0) scale(1);
+  }
+}
+@keyframes fighter-hit {
+  0%,
+  38% {
+    transform: translateX(9px) rotate(3deg);
+    filter: brightness(2.5) contrast(0.8);
+  }
+  40%,
+  75% {
+    transform: translateX(-4px);
+    filter: brightness(1.4);
+  }
+  100% {
+    transform: none;
+    filter: none;
+  }
+}
+@keyframes stage-hit {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  25% {
+    transform: translate(-3px, 1px);
+  }
+  55% {
+    transform: translate(4px, -2px);
+  }
+  80% {
+    transform: translate(-2px, 0);
+  }
+}
+@keyframes number-impact {
+  0% {
+    opacity: 0;
+    transform: translateY(4px) scale(1.5);
+  }
+  12%,
+  38% {
+    opacity: 1;
+    transform: translateY(-10px) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-52px) scale(0.9);
+  }
+}
+@keyframes mote-drift {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0);
+  }
+  20%,
+  70% {
+    opacity: 0.45;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(40px, -200px);
+  }
+}
+/* Quiet card surface: one small technique glyph, readable effect text, no decorative illustration. */
+.card {
+  background: #dfd9cc;
+  color: #302f2d;
+  border: 1px solid #8b887e;
+  border-radius: 4px;
+  box-shadow: 0 4px 8px #0005;
+  padding: 8px;
+}
+.card:before {
+  display: none;
+}
+.card.selected {
+  border-color: #deccab;
+  box-shadow:
+    0 0 0 2px #deccab,
+    0 5px 10px #0006;
+}
+.card .cost {
+  left: 6px;
+  top: 6px;
+  width: 25px;
+  height: 25px;
+  font-size: 16px;
+  border-radius: 3px;
+  background: #333d41;
+  border: 1px solid #595b57;
+  box-shadow: none;
+  color: #f1ede5;
+}
+.card .owner {
+  top: 8px;
+  right: 7px;
+  background: none;
+  color: #626058;
+  border: none;
+  font-size: 9px;
+  padding: 2px 0;
+}
+.card .owner-mage,
+.card .owner-knight {
+  color: #626058;
+}
+.card-art {
+  flex: 0 0 28%;
+  margin-top: 23px;
+  background-image: none;
+  background: #d4cfc3;
+  border: none;
+  border-radius: 2px;
+  display: grid;
+  place-items: center;
+}
+.technique-icon {
+  width: 70%;
+  max-width: 88px;
+  height: 100%;
+  stroke: #4f514d;
+  stroke-width: 2.5;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  fill: none;
+}
+.icon-fire {
+  stroke: #9b5541;
+}
+.icon-ice {
+  stroke: #497d8a;
+}
+.icon-lightning {
+  stroke: #726085;
+}
+.card-name {
+  font-size: 14px;
+  padding-top: 9px;
+}
+.card-description {
+  padding: 9px 3px 3px;
+  font-size: 11px;
+  line-height: 1.65;
+}
+.card-type {
+  color: #737067;
+}
+.card-keywords {
+  color: #67655d;
+  border-color: #a6a296;
+}
+@media (min-width: 1650px) {
+  .card-art {
+    flex-basis: 28%;
+  }
+  .card-name {
+    font-size: 16px;
+  }
+  .card-description {
+    font-size: 13px;
+  }
+}
+@media (max-width: 1300px) {
+  .card-description {
+    font-size: 10px;
+  }
+  .card-name {
+    font-size: 12px;
+  }
+  .fighter-body {
+    width: 108%;
+  }
+}
+.reduce-motion .animated-hero {
+  background-position: 0 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animated-hero {
+    background-position: 0 0;
+  }
+}
+.battle-screen .scene-backdrop {
+  filter: saturate(0.62) brightness(0.72);
+}
+.battlefield:before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 56px;
+  height: 100px;
+  background: radial-gradient(ellipse at center, #070a1340, transparent 70%);
+  pointer-events: none;
+}
+.unit.down {
+  opacity: 1;
+  filter: none;
+}
+.unit.down .fighter-body,
+.unit.down .unit-info {
+  opacity: 0.25;
+}
+.unit:is([data-technique='guard'], [data-technique='focus'], [data-technique='heal']):is(
+    [data-pose='release'],
+    [data-pose='follow']
+  )
+  .fighter-body {
+  animation: none;
+  transform: translateY(-3px) rotate(-2deg);
+}
+.reduce-motion .fighter-body {
+  transform: none !important;
+}
+.reduce-motion .animated-hero {
+  background-position: 0 0 !important;
+}
+.reduce-motion .animated-enemy {
+  background-position-y: 0% !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  .fighter-body {
+    transform: none !important;
+  }
+  .animated-hero {
+    background-position: 0 0 !important;
+  }
+  .animated-enemy {
+    background-position-y: 0% !important;
+  }
+}

@@ -3,7 +3,7 @@ import { cards, cardById } from '../content/cards';
 import { introduction, ending } from '../content/story';
 import { combatCommand, previewCard, type CombatCommand } from '../domain/combat';
 import { reachable } from '../domain/expedition';
-import type { BattleEvent, GameSave, Zone } from '../domain/model';
+import type { BattleEvent, Combat, GameSave, Zone } from '../domain/model';
 import { gameCommand, newGame, practiceGame, type GameCommand } from '../application/game';
 import {
   commitSave,
@@ -14,6 +14,8 @@ import {
   writeSettings,
 } from '../persistence/save';
 import { playCue } from './audio';
+import { choreography, showImpact, type Cue } from './choreography';
+import { BattleEffects } from './BattleEffects';
 import { Sprite, Card, ModalFrame, UnitButton } from './components';
 import { TitleScreen, LobbyScreen } from './HomeScreens';
 
@@ -55,6 +57,9 @@ export function App() {
     [choiceIds, setChoiceIds] = useState<string[]>([]),
     [deckTab, setDeckTab] = useState<'brush' | 'common'>('brush'),
     [deckEntry, setDeckEntry] = useState<string | null>(null);
+  const [visualBattle, setVisualBattle] = useState<Combat | null>(null);
+  const [cue, setCue] = useState<Cue | null>(null);
+  const cueCounter = useRef(0);
   const current = useRef(save);
   current.current = save;
   const lock = useRef(false);
@@ -146,27 +151,56 @@ export function App() {
           const definition = previous.battle.cards[command.cardId].definitionId;
           next.stats.cards[definition] = (next.stats.cards[definition] ?? 0) + 1;
         }
+        const definition =
+          command.type === 'play'
+            ? cardById[previous.battle.cards[command.cardId].definitionId]
+            : undefined;
+        const steps = choreography(result.events, previous.battle, definition);
+        // Commit exactly once before presentation. Refresh resumes the committed outcome.
+        const openingView = structuredClone(previous.battle);
+        if (command.type === 'play') {
+          openingView.energy = result.state.energy;
+          openingView.zones.hand = openingView.zones.hand.filter((id) => id !== command.cardId);
+          openingView.zones.resolving.push(command.cardId);
+        }
+        setVisualBattle(openingView);
         await persist(next, previous.revision, practice);
-        setEvents(result.events);
         setChoiceIds([]);
         setSelected(null);
         setHoverTarget(null);
-        const cue = result.events.some((e) => e.kind === 'damage')
-          ? 'damage'
-          : result.events.some((e) => e.kind === 'heal')
-            ? 'heal'
-            : 'card';
-        if (result.events.length) playCue(cue, settingsRef.current.volume);
+        const motion =
+          settingsRef.current.motion && !matchMedia('(prefers-reduced-motion: reduce)').matches;
+        for (const step of steps) {
+          const active = { ...step, id: ++cueCounter.current };
+          setCue(active);
+          setEvents(step.event ? [step.event] : []);
+          if (step.beat === 'impact') {
+            setVisualBattle((view) => showImpact(view ?? previous.battle!, step.event));
+            playCue(
+              step.event?.kind === 'damage'
+                ? 'damage'
+                : step.event?.kind === 'heal'
+                  ? 'heal'
+                  : 'guard',
+              settingsRef.current.volume,
+              step.technique === 'dragon' || (step.event?.amount ?? 0) >= 15,
+            );
+          } else if (step.beat === 'release') playCue('swing', settingsRef.current.volume);
+          await new Promise((resolve) => setTimeout(resolve, motion ? step.duration : 20));
+        }
       } catch (error) {
         announce(error instanceof Error ? error.message : '전투를 저장하지 못했습니다.');
       } finally {
+        setVisualBattle(null);
+        setCue(null);
+        setEvents([]);
         lock.current = false;
         setBusy(false);
       }
     },
     [persist, practice],
   );
-  const battle = save?.battle;
+  const battle = visualBattle ?? save?.battle;
   useEffect(() => {
     if (
       save?.screen !== 'battle' ||
@@ -183,11 +217,6 @@ export function App() {
     );
     return () => clearTimeout(timer);
   }, [save?.screen, battle, busy, modal, combatSend, settings.motion]);
-  useEffect(() => {
-    if (!events.length) return;
-    const timer = setTimeout(() => setEvents([]), 750);
-    return () => clearTimeout(timer);
-  }, [events]);
   const leaveToTitle = useCallback(() => {
     setSave(null);
     setPractice(false);
@@ -416,7 +445,9 @@ export function App() {
               </div>
             )}
             <div className="top-actions">
-              <span className="save-indicator">{busy ? '기록 중…' : '◈ 자동 저장'}</span>
+              <span className="save-indicator">
+                {cue ? '기술 시전 중' : busy ? '기록 중…' : '◈ 자동 저장'}
+              </span>
               <button onClick={() => setModal('help')} aria-label="게임 안내">
                 ?
               </button>
@@ -649,7 +680,27 @@ export function App() {
                   </>
                 )}
               </div>
-              <main className="battlefield">
+              <main
+                className={`battlefield ${cue?.beat === 'impact' && cue.event?.kind === 'damage' ? 'impact-shake' : ''}`}
+                data-animation={cue?.beat ?? 'idle'}
+              >
+                <BattleEffects
+                  cue={cue}
+                  motion={
+                    settings.motion && !matchMedia('(prefers-reduced-motion: reduce)').matches
+                  }
+                />
+                {cue && (
+                  <div className={`technique-banner technique-${cue.technique}`}>
+                    <span>{cue.sourceId === 'brush' ? '筆' : '技'}</span>
+                    {cue.label}
+                  </div>
+                )}
+                <div className="ambient-motes" aria-hidden="true">
+                  {[0, 1, 2, 3, 4, 5].map((i) => (
+                    <i key={i} style={{ '--i': i } as CSSProperties} />
+                  ))}
+                </div>
                 <div className="formation allies">
                   {battle.party.map((u) => (
                     <UnitButton
@@ -658,6 +709,7 @@ export function App() {
                       battle={battle}
                       selectedActor={actor === u.id}
                       events={events}
+                      cue={cue}
                       targetable={selectedDefinition?.target === 'ally'}
                       onClick={() => {
                         if (selectedDefinition?.target === 'ally') useSelected(u.id);
@@ -679,6 +731,7 @@ export function App() {
                       enemy
                       selectedActor={false}
                       events={events}
+                      cue={cue}
                       targetable={selectedDefinition?.target === 'enemy'}
                       preview={
                         selected && hoverTarget === u.id
@@ -737,6 +790,7 @@ export function App() {
                             cost={instance.costOverride}
                             selected={id === selected}
                             disabled={
+                              busy ||
                               battle.phase !== 'player' ||
                               battle.energy < (instance.costOverride ?? d.cost) ||
                               !battle.party.some(
@@ -952,7 +1006,7 @@ export function App() {
                 <span>{Math.round(settings.volume * 100)}%</span>
               </label>
               <label>
-                화면 움직임{' '}
+                전투 애니메이션{' '}
                 <input
                   type="checkbox"
                   checked={settings.motion}
@@ -975,7 +1029,9 @@ export function App() {
                       />
                     </label>
                   )}
-                  <button onClick={leaveToTitle}>타이틀로 돌아가기</button>
+                  <button disabled={busy} onClick={leaveToTitle}>
+                    타이틀로 돌아가기
+                  </button>
                 </div>
               )}
               <p className="modal-description">

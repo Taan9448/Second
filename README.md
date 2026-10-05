@@ -22,6 +22,7 @@ npm run build
 npm run test:pages # 빌드 결과를 /Second/ 하위의 정적 서버에서 검수
 # dev 서버가 실행 중이어야 한다. 시스템 Chromium 경로를 바꿀 때는 CHROMIUM_PATH를 설정한다.
 npm run test:browser
+npm run test:motion # 기술 발사·명중·프레임·시전 중 새로고침 검수
 ```
 
 단축키: `1~9/0` 카드 선택, `Esc` 취소, `E` 턴 종료, `D/F/X/P` 더미, `L` 로그. 기본 브라우저 포커스로도 대상을 선택할 수 있다.
@@ -44,4 +45,4 @@ Claude와 Codex 모두 작업 시작 전에 [AGENTS.md](AGENTS.md)와 인계 문
 
 ## 디자인 기준
 
-[승인한 목업과 기준](design/mockups/README.md), [에셋 출처와 규격](public/art/README.md)을 확인한다. 이전 수작업 임시 아트는 사용하지 않는다. 현재 스프라이트 동작은 CSS 이동·타격 표현이며 프레임별 동작 에셋은 후속 제작이다.
+[승인한 목업과 기준](design/mockups/README.md), [에셋 출처와 규격](public/art/README.md)을 확인한다. 이전 수작업 임시 아트는 사용하지 않는다. 현재는 1스테이지의 전투 느낌 개선에 집중한다. 연묵의 대기/붓 공격 프레임과 적 대기/공격 자세, Canvas 기술 발사·명중 연출을 적용했다. 전체 동료/적의 다프레임 동작은 아직 미완료다. [변경·검수·한계](docs/COMBAT_FEEL.md)를 확인한다.

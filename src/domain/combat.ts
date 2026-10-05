@@ -138,7 +138,14 @@ function damage(
     : attackDamage(base, source, target);
   target.block -= result.absorbed;
   target.hp -= result.hp;
-  events.push({ kind: 'damage', sourceId: source.id, targetId: target.id, amount: result.total });
+  events.push({
+    kind: 'damage',
+    sourceId: source.id,
+    targetId: target.id,
+    amount: result.total,
+    hpAfter: target.hp,
+    blockAfter: target.block,
+  });
   log(
     c,
     `${source.name} → ${target.name}: ${result.total} 피해${result.absorbed ? ` (보호막 ${result.absorbed})` : ''}`,
@@ -146,7 +153,14 @@ function damage(
   if (!raw && target.statuses.thorns > 0 && source.hp > 0) {
     const reflected = Math.min(source.hp, target.statuses.thorns);
     source.hp -= reflected;
-    events.push({ kind: 'damage', sourceId: target.id, targetId: source.id, amount: reflected });
+    events.push({
+      kind: 'damage',
+      sourceId: target.id,
+      targetId: source.id,
+      amount: reflected,
+      hpAfter: source.hp,
+      blockAfter: source.block,
+    });
     log(c, `${target.name}의 반격: ${reflected} 피해`);
   }
   if (target.hp === 0) log(c, `${target.name} 쓰러짐`);
@@ -299,7 +313,14 @@ function effects(
           const amount = e.kind === 'heal' ? Math.min(e.amount, t.maxHp - t.hp) : e.amount;
           if (e.kind === 'heal') t.hp += amount;
           else t.block += amount;
-          events.push({ kind: e.kind, sourceId: actor.id, targetId: t.id, amount });
+          events.push({
+            kind: e.kind,
+            sourceId: actor.id,
+            targetId: t.id,
+            amount,
+            hpAfter: t.hp,
+            blockAfter: t.block,
+          });
           log(c, `${t.name}: ${e.kind === 'heal' ? '회복' : '보호막'} ${amount}`);
         }
         break;

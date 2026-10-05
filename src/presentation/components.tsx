@@ -1,6 +1,8 @@
-import { useEffect, useRef, type CSSProperties } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { heroes } from '../content/cards';
 import { attackDamage, statusNames } from '../domain/combat';
+import { techniqueFor, type Cue } from './choreography';
+import { TechniqueIcon } from './BattleEffects';
 import type { BattleEvent, CardDefinition, Combat, Unit } from '../domain/model';
 
 const styleArt = (index: number): CSSProperties => ({
@@ -57,7 +59,9 @@ export function Card({
             ? '합동'
             : heroes[card.owner].name}
       </span>
-      <span className="card-art" style={styleArt(card.art)} />
+      <span className="card-art">
+        <TechniqueIcon technique={techniqueFor(card)} />
+      </span>
       <span className="card-name">{card.name}</span>
       <span className="card-type">
         {card.school} · {card.type}
@@ -152,6 +156,7 @@ export function UnitButton({
   enemy = false,
   selectedActor,
   events,
+  cue,
   targetable,
   preview,
   onClick,
@@ -163,6 +168,7 @@ export function UnitButton({
   enemy?: boolean;
   selectedActor: boolean;
   events: BattleEvent[];
+  cue: Cue | null;
   targetable?: boolean;
   preview?: number;
   onClick: () => void;
@@ -175,13 +181,33 @@ export function UnitButton({
   const impacts = events.filter(
     (e) => e.targetId === unit.id && ['damage', 'block', 'heal'].includes(e.kind),
   );
-  const acting = events.some(
-    (e) => e.sourceId === unit.id && (e.kind === 'card' || e.kind === 'enemy'),
-  );
-  const art = events.find((e) => e.targetId === unit.id && e.kind === 'card')?.art;
+  const acting =
+    cue?.sourceId === unit.id &&
+    !impacts.some((e) => e.kind === 'damage') &&
+    ['windup', 'release', 'impact', 'recover'].includes(cue.beat);
+  const hit = impacts.some((e) => e.kind === 'damage');
+  const motionKey = cue?.id ?? 0;
+  const pose = acting ? (cue!.beat === 'impact' ? 'follow' : cue!.beat) : hit ? 'hit' : 'idle';
+  const [numbers, setNumbers] = useState<{ id: number; event: BattleEvent }[]>([]);
+  const timers = useRef(new Map<number, ReturnType<typeof setTimeout>>());
+  useEffect(() => {
+    if (cue?.beat !== 'impact' || !cue.event || cue.event.targetId !== unit.id) return;
+    const number = { id: cue.id, event: cue.event };
+    setNumbers((current) => [...current.slice(-4), number]);
+    timers.current.set(
+      number.id,
+      setTimeout(() => {
+        setNumbers((current) => current.filter((n) => n.id !== number.id));
+        timers.current.delete(number.id);
+      }, 650),
+    );
+  }, [cue, unit.id]);
+  useEffect(() => () => timers.current.forEach(clearTimeout), []);
   return (
     <button
-      className={`unit ${enemy ? 'enemy' : 'ally'} ${unit.hp <= 0 ? 'down' : ''} ${targetable && unit.hp > 0 ? 'targetable' : ''} ${selectedActor ? 'active-caster' : ''} ${acting ? 'acting' : ''} ${impacts.some((e) => e.kind === 'damage') ? 'hit' : ''}`}
+      className={`unit ${enemy ? 'enemy' : 'ally'} ${unit.hp <= 0 ? 'down' : ''} ${targetable && unit.hp > 0 ? 'targetable' : ''} ${selectedActor ? 'active-caster' : ''} ${acting ? 'acting' : ''} ${hit ? 'hit' : ''}`}
+      data-pose={pose}
+      data-technique={acting ? cue?.technique : undefined}
       data-unit={unit.id}
       aria-label={`${unit.name} 체력 ${unit.hp}, 보호막 ${unit.block}${intent ? `, ${intent.label}` : ''}`}
       disabled={unit.hp <= 0}
@@ -229,9 +255,17 @@ export function UnitButton({
             </>
           ))}
       </div>
-      <Sprite art={unit.art} />
+      <div className="fighter-body" key={acting || hit ? `action-${motionKey}` : 'idle'}>
+        {unit.id === 'brush' ? (
+          <div className={`animated-hero pose-${pose}`} aria-hidden="true" />
+        ) : enemy ? (
+          <div className={`animated-enemy enemy-art-${unit.art} pose-${pose}`} aria-hidden="true" />
+        ) : (
+          <Sprite art={unit.art} />
+        )}
+      </div>
       <div className="unit-shadow" />
-      {art !== undefined && <span className={`spell-effect spell-${art}`} />}
+
       <div className="unit-info">
         <strong>{unit.name}</strong>
         <Health unit={unit} />
@@ -251,8 +285,12 @@ export function UnitButton({
           예상 피해 <b>{preview}</b>
         </div>
       )}
-      {impacts.map((e, i) => (
-        <span key={i} className={`floating-number ${e.kind}`} style={{ '--n': i } as CSSProperties}>
+      {numbers.map(({ id, event: e }, i) => (
+        <span
+          key={id}
+          className={`floating-number ${e.kind}`}
+          style={{ '--n': i } as CSSProperties}
+        >
           {e.kind === 'damage' ? '-' : '+'}
           {e.amount}
         </span>

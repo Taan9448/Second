@@ -95,6 +95,8 @@ export interface BattleEvent {
   targetId: string;
   amount?: number;
   art?: number;
+  hpAfter?: number;
+  blockAfter?: number;
 }
 export interface DeckEntry {
   id: string;
