@@ -25,7 +25,7 @@
 
 ## 실행
 
-`cd /workspace/Second && npm ci && npm run dev` → 실행한 환경의 http://localhost:5173. 공개배포URL은없다. 메인 → 여정시작 → 빈슬롯 → 원정떠나기. 연습은 로비의 세캐릭터전투연습으로 시작한다.
+`cd /workspace/Second && npm ci && npm run dev` → 실행한 환경의 http://localhost:5173. GitHub Pages 주소는 https://taan9448.github.io/Second/ 이다. 메인 → 여정시작 → 빈슬롯 → 원정떠나기. 연습은 로비의 세캐릭터전투연습으로 시작한다.
 
 `npm test`, `npm run build`, dev서버 실행중 `npm run test:browser`. Chromium은기본 `/usr/bin/chromium`, 다른환경은 `CHROMIUM_PATH` 지정. 이 작업환경에서 npm기본캐시경로 쓰기가실패하여 설치 때 `--cache /tmp/cheonoe-npm-cache`를 사용했다. 다른환경의정상기본캐시는 그대로사용한다.
 
@@ -44,3 +44,7 @@
 ## 보관한 실제 화면
 
 [실제 전투 화면](../design/implementation-v01/battle.png), [실제 메인 화면](../design/implementation-v01/title.png), [실제 로비 화면](../design/implementation-v01/lobby.png)을 저장했다. 이미지 목업과 실제 브라우저 캡처를 구분한다. 초기 적 패턴은 제한된3종이며 다음 확장에서는 적 정의/행동 상태와 아트 슬롯을 분리한다.
+
+## GitHub Pages 수정
+
+사용자가 GitHub 업로드와 Pages 실행 문제 수정을 요청했다. 기존 Pages는 빌드 전 index.html의 /src/main.tsx를 배포하여 실행할 수 없었다. Vite base를 상대 경로로 설정하고 main push 시 시험→빌드→dist 배포하는 .github/workflows/pages.yml을 추가했다. tests/pages.mjs는 /Second/에서만 파일을 제공하는 정적 서버와 Chromium으로 화면·저장·아트·글꼴 경로를 확인한다. npm run build 후 npm run test:pages로 실행한다. 원격 배포 결과는 Actions에서 별도 확인한다.

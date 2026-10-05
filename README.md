@@ -14,11 +14,12 @@ npm ci
 npm run dev
 ```
 
-실행한 환경에서 http://localhost:5173 을 연다. 외부에 배포한 공개 URL은 없다. 메인의 **여정 시작 → 빈 저장 슬롯 → 원정 떠나기**로 첫 번째 장을 플레이한다. 로비의 **세 캐릭터 전투 연습**은 본편 저장과 분리된다. 로컬 저장은 브라우저와 origin에 종속된다.
+실행한 환경에서 http://localhost:5173 을 연다. GitHub Pages 실행 주소는 https://taan9448.github.io/Second/ 이다. main에 push하면 GitHub Actions가 시험·빌드 후 dist를 배포한다. 저장소 Settings → Pages의 Source는 GitHub Actions로 설정한다. 메인의 **여정 시작 → 빈 저장 슬롯 → 원정 떠나기**로 첫 번째 장을 플레이한다. 로비의 **세 캐릭터 전투 연습**은 본편 저장과 분리된다. 로컬 저장은 브라우저와 origin에 종속된다.
 
 ```bash
 npm test
 npm run build
+npm run test:pages # 빌드 결과를 /Second/ 하위의 정적 서버에서 검수
 # dev 서버가 실행 중이어야 한다. 시스템 Chromium 경로를 바꿀 때는 CHROMIUM_PATH를 설정한다.
 npm run test:browser
 ```
